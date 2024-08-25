@@ -3,24 +3,74 @@
 #include <sys/_endian.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "../include/parse.h"
 #include "../include/common.h"
 
-int output_file(int fd, struct dbheader_t *dbhdr) {
+int add_employees(struct dbheader_t *dbhdr, struct employee_t *employees, char *addstring) {
+    printf("New employees: %s\n", addstring);
+
+    char *name = strtok(addstring, ",");
+    char *addr = strtok(NULL, ",");
+    char *hours = strtok(NULL, ",");
+
+    printf("%s %s %s", name, addr, hours);
+
+    strncpy(employees[dbhdr->count-1].name, name, sizeof(employees[dbhdr->count-1].name));
+    strncpy(employees[dbhdr->count-1].address, addr, sizeof(employees[dbhdr->count-1].address));
+    employees[dbhdr->count-1].hours = atoi(hours);
+    return STATUS_SUCCESS;
+}
+
+int read_employees(int fd, struct dbheader_t *dbhdr, struct employee_t **employeesOut) {
     if (fd < 0) {
         printf("Bad file descriptor from user\n");
         return STATUS_ERROR;
     }
 
+    int count = dbhdr->count;
+    struct employee_t *employees = calloc(count, sizeof(struct employee_t));
+
+    if (employees == -1) {
+        printf("Calloc failed\n");
+        return STATUS_ERROR;
+    }
+
+    read(fd, employees, count*sizeof(struct employee_t));
+
+    int i = 0;
+    for (; i < count; i++) {
+        employees[i].hours = ntohl(employees[i].hours);
+    }
+    *employeesOut = employees;
+    return STATUS_SUCCESS;
+}
+
+int output_file(int fd, struct dbheader_t *dbhdr, struct employee_t *employees) {
+    if (fd < 0) {
+        printf("Bad file descriptor from user\n");
+        return STATUS_ERROR;
+    }
+
+    int realCount = dbhdr->count;
+
     dbhdr->magic = htonl(dbhdr->magic);
-    dbhdr->filesize = htonl(dbhdr->filesize);
-    dbhdr->count = htons(dbhdr->filesize);
+    dbhdr->filesize = htonl(sizeof(struct dbheader_t) + (sizeof(struct employee_t)) * realCount);
+    dbhdr->count = htons(dbhdr->count);
     dbhdr->version = htons(dbhdr->version);
 
     lseek(fd, 0, SEEK_SET);
 
     write(fd, dbhdr, sizeof(struct dbheader_t));
+
+
+    int i = 0;
+
+    for (;i < realCount; i++) {
+        employees[i].hours = htonl(employees[i].hours);
+        write(fd, &employees[i], sizeof(struct employee_t));
+    }
 
     return STATUS_SUCCESS;
 }

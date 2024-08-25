@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "../include/file.h"
@@ -20,16 +21,22 @@ int main(int argc, char *argv[]) {
     int c;
     bool newFile = false;
     char *filePath = NULL;
+    char *addstring = NULL;
     int dbfd = -1;
-    struct dbheader_t *dbhdr = NULL;
 
-    while ((c = getopt(argc, argv, "nf:")) != -1) {
+    struct dbheader_t *dbhdr = NULL;
+    struct employee_t *employees = NULL;
+
+    while ((c = getopt(argc, argv, "nf:a:")) != -1) {
         switch (c) {
             case 'n':
                 newFile = true;
                 break;
             case 'f':
                 filePath = optarg;
+                break;
+            case 'a':
+                addstring = optarg;
                 break;
             case '?':
                 printf("Unknown variable option -%c\n", c);
@@ -70,9 +77,21 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printf("NewFile: %d\n", newFile);
-    printf("FilePath: %s\n", filePath);
+    if (read_employees(dbfd, dbhdr, &employees) != STATUS_SUCCESS) {
+     printf("Failed to read employees");
+     return -1;
+    }
 
-    output_file(dbfd, dbhdr);
+    if (addstring) {
+        dbhdr->count++;
+        employees = realloc(employees, dbhdr->count*(sizeof(struct employee_t)));
+        if (employees == -1) {
+            printf("Realloc failed\n");
+            return -1;
+        }
+        add_employees(dbhdr, employees, addstring);
+    }
+
+    output_file(dbfd, dbhdr, employees);
     return 0;
 }
