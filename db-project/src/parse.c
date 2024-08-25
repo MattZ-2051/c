@@ -8,6 +8,16 @@
 #include "../include/parse.h"
 #include "../include/common.h"
 
+void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees) {
+    int i = 0;
+    for (; i < dbhdr->count; i++) {
+        printf("Employee %d\n", i);
+        printf("\tName: %s\n", employees[i].name);
+        printf("Address:%s\n", employees[i].address);
+        printf("Hours: %d\n", employees[i].hours);
+    }
+}
+
 int add_employees(struct dbheader_t *dbhdr, struct employee_t *employees, char *addstring) {
     printf("New employees: %s\n", addstring);
 
