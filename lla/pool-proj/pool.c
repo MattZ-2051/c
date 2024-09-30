@@ -71,8 +71,8 @@ void *thread_function(void *threadpool) {
     (*(task.fn))(task.arg);
   }
 
-  return NULL
-};
+  return NULL;
+}
 
 void threadpool_init(threadpool_t *pool) {
   pool->queued = 0;
@@ -111,4 +111,8 @@ int main() {
     *task_num = i;
     threadpool_add_task(&pool, example_task, task_num);
   }
+
+  sleep(5);
+  threadpool_destroy(&pool);
+  return 0;
 }
